@@ -1,9 +1,6 @@
 Resume vs. Job Description Matcher
 
 Paste a resume and a job description. Get a match score, the skills you are missing, stronger versions of vague bullets, and a draft cover note, plus warnings when the AI writes something your resume does not support.
-![alt text](image.png)
-
-![alt text](image-1.png)
 
 Built as a personal project to explore reliable LLM output: structured JSON, verified evidence, and a grounding check against hallucinated claims
 
