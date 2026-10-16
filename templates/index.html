@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume vs. Job Description Matcher</title>
+<style>
+  :root { --ink:#14202b; --muted:#5b6b78; --paper:#f3f5f7; --card:#fff; --line:#d9e0e6;
+          --accent:#0f766e; --warn:#b45309; --bad:#b42318; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e8eef3; --muted:#9fb0bd; --paper:#10171d; --card:#17212a; --line:#2a3743;
+            --accent:#2dd4bf; --warn:#f59e0b; --bad:#f87171; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font:16px/1.55 "Segoe UI", system-ui, sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font:700 30px/1.2 Georgia, serif; margin:0 0 6px; }
+  .sub { color:var(--muted); margin:0 0 24px; max-width:60ch; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  label { font-weight:600; display:block; margin-bottom:6px; }
+  textarea { width:100%; height:280px; padding:12px; border:1px solid var(--line); border-radius:8px;
+             background:var(--card); color:var(--ink); font:14px/1.5 inherit; resize:vertical; }
+  textarea:focus, button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  button { margin-top:16px; padding:12px 22px; border:0; border-radius:8px; background:var(--accent);
+           color:#fff; font:600 16px inherit; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  #msg { margin-top:12px; color:var(--bad); min-height:1.5em; }
+  #out { margin-top:28px; display:none; }
+  .score { display:flex; align-items:center; gap:20px; padding:20px; background:var(--card);
+           border:1px solid var(--line); border-radius:10px; }
+  .num { font:700 56px/1 Georgia, serif; color:var(--accent); }
+  .num.mid { color:var(--warn); } .num.low { color:var(--bad); }
+  .small { color:var(--muted); font-size:14px; }
+  section { margin-top:20px; padding:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  h2 { font-size:18px; margin:0 0 12px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:4px 10px; border-radius:999px; border:1px solid var(--accent); color:var(--accent); font-size:14px; }
+  .chip.miss { border-color:var(--bad); color:var(--bad); }
+  .bullet { padding:12px 0; border-top:1px solid var(--line); }
+  .bullet:first-of-type { border-top:0; padding-top:0; }
+  .old { color:var(--muted); text-decoration:line-through; }
+  .new { font-weight:600; }
+  pre { white-space:pre-wrap; font:inherit; margin:0; }
+  .copy { margin-top:10px; background:transparent; color:var(--accent); border:1px solid var(--accent); padding:6px 12px; font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Resume vs. job description</h1>
+  <p class="sub">Paste your resume and a job description. You get a match score, the skills you're missing, stronger versions of weak bullets, and a draft cover note. Nothing is stored.</p>
+  <div class="grid">
+    <div><label for="resume">Your resume (plain text)</label><textarea id="resume"></textarea></div>
+    <div><label for="jd">Job description</label><textarea id="jd"></textarea></div>
+  </div>
+  <button id="go">Analyze match</button>
+  <div id="msg" role="alert"></div>
+
+  <div id="out">
+    <div class="score"><div class="num" id="score"></div>
+      <div><strong>Match score</strong><div class="small" id="break"></div></div></div>
+    <section id="warnbox" style="display:none;border-color:var(--warn)"><h2>Check before you use this</h2><ul id="warnings"></ul><p class="small">These items were flagged because your resume does not support them. Remove or confirm each one.</p></section>
+    <section><h2>Skills you match</h2><div class="chips" id="matched"></div></section>
+    <section><h2>Skills to add or show</h2><div class="chips" id="missing"></div></section>
+    <section><h2>Strengths</h2><ul id="strengths"></ul></section>
+    <section><h2>Bullets to strengthen</h2><div id="bullets"></div>
+      <p class="small">Replace [X] with your real numbers. Only keep claims that are true.</p></section>
+    <section><h2>Draft cover note</h2><pre id="cover"></pre><button class="copy" id="copy">Copy note</button></section>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+$("go").onclick = async () => {
+  $("msg").textContent = ""; $("go").disabled = true; $("go").textContent = "Analyzing...";
+  try {
+    const r = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resume: $("resume").value, jd: $("jd").value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Something went wrong.");
+    render(d);
+  } catch (e) { $("msg").textContent = e.message; }
+  $("go").disabled = false; $("go").textContent = "Analyze match";
+};
+
+function render(d) {
+  $("out").style.display = "block";
+  const s = $("score"); s.textContent = d.score + "%";
+  s.className = "num" + (d.score < 40 ? " low" : d.score < 70 ? " mid" : "");
+  $("break").textContent = `Rubric score ${d.breakdown.llm_score} (60% weight) and skills coverage ${d.breakdown.skills_coverage} (40% weight)`;
+  const fill = (id, items, cls) => { const box = $(id); box.replaceChildren(); items.forEach(i => box.append(el(["strengths", "warnings"].includes(id) ? "li" : "span", cls, i))); };
+  $("warnbox").style.display = d.warnings.length ? "block" : "none"; fill("warnings", d.warnings, "");
+  fill("matched", d.matched_skills, "chip"); fill("missing", d.missing_skills, "chip miss"); fill("strengths", d.strengths, "");
+  const b = $("bullets"); b.replaceChildren();
+  d.weak_bullets.forEach(x => { const w = el("div", "bullet");
+    w.append(el("div", "old", x.original), el("div", "new", x.improved), el("div", "small", x.reason)); b.append(w); });
+  $("cover").textContent = d.cover_note;
+  $("out").scrollIntoView({ behavior: "smooth" });
+}
+$("copy").onclick = () => navigator.clipboard.writeText($("cover").textContent);
+</script>
+</body>
+</html>

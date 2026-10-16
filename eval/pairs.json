@@ -1,0 +1,8 @@
+[
+  {"id": "strong-01", "expected_min": 70, "expected_max": 100,
+   "resume": "Python developer with 3 years of experience building REST APIs in Flask and FastAPI. Built a RAG chatbot using LangChain, ChromaDB and OpenAI embeddings, deployed on AWS with Docker. Wrote SQL queries on PostgreSQL and automated reporting with pandas. Reduced report generation time by 60 percent.",
+   "jd": "We are hiring a Generative AI Engineer. Requirements: Python, Flask or FastAPI, experience with LLMs and RAG pipelines, vector databases such as ChromaDB, Docker, AWS, and SQL. Nice to have: LangChain."},
+  {"id": "weak-01", "expected_min": 0, "expected_max": 35,
+   "resume": "Retail store manager with 5 years of experience in inventory management, staff scheduling, customer service and visual merchandising. Managed a team of 12 and improved monthly sales targets through local promotions and vendor negotiation.",
+   "jd": "We are hiring a Generative AI Engineer. Requirements: Python, Flask or FastAPI, experience with LLMs and RAG pipelines, vector databases such as ChromaDB, Docker, AWS, and SQL. Nice to have: LangChain."}
+]
